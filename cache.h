@@ -1,0 +1,88 @@
+#include "stdafx.h"
+
+#ifndef _CACHE_H_
+#define _CACHE_H_
+/*
+ *  Создать proxy-сервер.
+ *  ! LINUX АРХИТЕКТУРА !
+ *
+ *  v   Сборка через make.
+ *  v   Запуск:  ./cache ...
+ *  +   Сервер при старте создаёт 4 дочерних процесса
+ *      обработки комманд клиентов.
+ *  +   Передача дескрипторов в дочерние процессы. (sndmsg)
+ *  +   Сборка мусора по таймеру, при чтении (timer?)
+ *  +   Данные кэша в разделяемой памяти (shm_open | schmget)
+ *  +   Атомарность (semget | posix)
+ *  +   Реализация hash_table
+ */
+//-----------------------------------------
+#define CHWMSG_MAXLEN 5
+typedef enum { CHWMSG_NONE = 0, CHWMSG_TERM, CHWMSG_TASK } chwmsg_enum;
+typedef int fd_t;
+typedef struct child_worker chw_t;
+struct child_worker
+{ pid_t pid;
+  fd_t  fd;
+};
+//-----------------------------------------
+int  child_worker_init (chw_t *chw);
+void child_worker_free (chw_t *chw);
+int  child_worker_send (chw_t *chw, chwmsg_enum  msg, fd_t  fd);
+int  child_worker_recv (chw_t *chw, chwmsg_enum *msg, fd_t *fd);
+//-----------------------------------------
+#define  SRV_SERVER_NAME   "cache-server-pract4"
+#define  SRV_IPSTRLENGTH   16U
+#define  SRV_MAX_WORKERS   16U
+#define  SRV_BUF_LOWMARK  128U
+
+typedef uint8_t wc_t;
+typedef struct server_config  srv_conf;
+struct  server_config
+{
+  //-----------------------
+  char *ptr_server_name;
+  //-----------------------
+  uint16_t  port;
+  char      ip[SRV_IPSTRLENGTH];
+  //-----------------------
+  wc_t      workers;
+  chw_t    *myself;
+  chw_t    *child_workers;
+  //-----------------------
+  /* defines FILENAME_MAX in <stdio.h> */
+  char  config_path[FILENAME_MAX];
+  char  server_path[FILENAME_MAX];
+  //-----------------------
+};
+extern struct server_config  server_conf;
+//-----------------------------------------
+int   server_config_init  (srv_conf *conf, char *port, char *ip, char *work);
+void  server_config_print (srv_conf *conf, FILE *stream);
+void  server_config_free  (srv_conf *conf);
+//-----------------------------------------
+int   parse_console_parameters (int argc, char **argv, srv_conf *conf);
+//-----------------------------------------
+int   set_nonblock (evutil_socket_t fd);
+//-----------------------------------------
+typedef struct hash_table hashtable;
+struct client
+{
+  /* bufferevent already has separate
+   * two buffers for input and output.
+   */
+  struct bufferevent  *b_ev;
+  struct event_base   *base;
+  //---------------------------
+  hashtable           *ht;
+};
+//-----------------------------------------
+void  cache_accept_cb (evutil_socket_t fd, short ev, void *arg);
+void  cache_ac_err_cb (evutil_socket_t fd, short ev, void *arg);
+//-----------------------------------------
+void  cache_connect_cb (evutil_socket_t fd, short ev, void *arg);
+//-----------------------------------------
+void  cache_read_cb   (struct bufferevent *b_ev, void *arg);
+void  cache_error_cb  (struct bufferevent *b_ev, short events, void *arg);
+//-----------------------------------------
+#endif // _CACHE_H_
