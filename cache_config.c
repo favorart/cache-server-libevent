@@ -93,13 +93,13 @@ int   server_config_init  (srv_conf *conf, char *port, char *ip, char *work)
   else conf->server_path[bytes] = '\0';
   //-----------------------
   if ( work )
-  {
-    my_errno = SRV_ERR_INPUT;
-    fprintf (stderr, "%s\n", strmyerror ()); 
-    conf->workers = atoi (work);
-  }
+  { conf->workers = atoi (work); }
   else
-  { conf->workers = 4U; }
+  { 
+    my_errno = SRV_ERR_INPUT;
+    fprintf (stderr, "%s\n", strmyerror ());
+    conf->workers = 4U;
+  }
   //-----------------------
   if ( !(conf->child_workers = calloc (conf->workers, sizeof (*conf->child_workers))) )
   { perror ("child_workers");

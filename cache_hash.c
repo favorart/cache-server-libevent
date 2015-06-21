@@ -61,68 +61,32 @@ static hash_t  hash (int32_t key)
 
   return (hash_t) h;
 }
-static hash_t  hashtable_walk1 (hashtable *ht, ht_rec *data, hash_t he)
+
+hash_t  hashtable_walk (hashtable *ht, ht_rec *data)
 {
-  hash_t h = he, shift = 1U;
-  //-----------------------------------------
-#ifdef _DEBUG
-  printf ("hash=%d ", he);
-#endif // _DEBUG
-  //-----------------------------------------
-  /* идём по открытой адресации */
-  while ( (h < ht->lines_count) && ht->lines[h].busy )
-  { /* если встречаем оконченный ttl */
-    if ( ttl_completed (ht->lines[h].data.ttl) )
-    { ht->lines[h].busy = false;
+  hash_t he = hash (data->key) % ht->lines_count;
 
-      /* если впереди нет ничего в открытой адресации */
-      if ( ((h + shift) >= ht->lines_count) || !ht->lines[h + shift].busy )
-      { break; } /* нашли необходимый номер - заканчиваем */
+  if ( !ht->lines[he].busy )
+    return he;
 
-      /* check for current hash is less then its index */
-      hash_t hn = hash (ht->lines[h + shift].data.key) % ht->lines_count;
-      if ( (h + shift) > hn )
-      { /* сдвигаем cледующего на данное место */
-        SWAP (&ht->lines[h], &ht->lines[h + shift]);
-        ++shift;
-      }
-      else { break; } /* не сдвигаем, нашли необходимый номер - заканчиваем */
-    }
-    else if ( ht->lines[h].data.key == data->key )
-    {
-      break; /* here get or set */
-    }
-    else if ( he < hash (ht->lines[h].data.key) % ht->lines_count )
-    {
-      // hashtable_walk (ht, data, he);
-      break;
-    }
-    else
-    { ++h; if ( shift > 1 ) --shift; }
-  } // end while
-  //-----------------------------------------
-  /* here set */
-  return h;
+  return ht->lines_count;
 }
-
-hash_t  hashtable_walk (hashtable *ht, ht_rec *data, hash_t he);
-void    hashtable_cttl (hashtable *ht, ht_rec *data);
 //-----------------------------------------
 bool  hashtable_get (hashtable *ht, ht_rec *data)
 {
 #ifdef _LOCK
   mysem_lock (ht->tb_semid, 0);
 #endif // _LOCK
+
   //-----------------------------------------
-  // hash_t he = hash (data->key) % ht->lines_count;
-  hashtable_cttl (ht, data);
-  hash_t h = hashtable_walk (ht, data, 0);
+  hash_t h = hash (data->key) % ht->lines_count; //  hashtable_walk (ht, data);
   //-----------------------------------------
   if ( (h < ht->lines_count) && ht->lines[h].busy
     && (ht->lines[h].data.key == data->key) )
   { *data  = ht->lines[h].data; }
   else { h = ht->lines_count;   }
   //-----------------------------------------
+
 #ifdef _LOCK
   mysem_unlock (ht->tb_semid, 0);
 #endif // _LOCK
@@ -134,10 +98,9 @@ bool  hashtable_set (hashtable *ht, ht_rec *data)
 #ifdef _LOCK
   mysem_lock (ht->tb_semid, 0);
 #endif // _LOCK
-  // hash_t he = hash (data->key) % ht->lines_count;
+  
   //-----------------------------------------
-  hashtable_cttl (ht, data);
-  hash_t h = hashtable_walk (ht, data, 0);
+  hash_t h = hashtable_walk (ht, data);
   if ( (h < ht->lines_count) && (!ht->lines[h].busy
     || (ht->lines[h].data.key == data->key)) )
   { 
@@ -146,62 +109,12 @@ bool  hashtable_set (hashtable *ht, ht_rec *data)
   }
   else h = ht->lines_count;
   //-----------------------------------------
+
 #ifdef _LOCK
   mysem_unlock (ht->tb_semid, 0);
 #endif // _LOCK
   //-----------------------------------------
   return (h == ht->lines_count);
-}
-
-
-hash_t  hashtable_walk (hashtable *ht, ht_rec *data, hash_t hee)
-{
-  hash_t he = hash (data->key) % ht->lines_count;
-  //-----------------------------------------
-  /* идём по открытой адресации */
-  hash_t h = he;
-  while ( (h < ht->lines_count) && ht->lines[h].busy )
-  {
-    if ( data->key == ht->lines[h].data.key )
-    { return h; }
-
-    if ( h > hash (ht->lines[h].data.key) % ht->lines_count )
-    { ++h; }
-    else break;
-  }
-  //-----------------------------------------
-  return h;
-}
-void    hashtable_cttl  (hashtable *ht, ht_rec *data)
-{
-  hash_t he = hash (data->key) % ht->lines_count;
-  //-----------------------------------------
-  
-  /* идём по открытой адресации */
-  hash_t h = he;
-  while ( (h < ht->lines_count) && ht->lines[h].busy )
-  {
-    if ( h > hash (ht->lines[h].data.key) % ht->lines_count )
-    { ++h; }
-    else break;
-  }
-  
-  /* сдвигаем ttl */
-  hash_t shift = 1U;
-  for ( hash_t i = he; i < h; )
-  {
-    /* если встречаем оконченный ttl */
-    if ( !ht->lines[i + shift].busy
-        || ttl_completed (ht->lines[i + shift].data.ttl) )
-    {
-      ht->lines[i] = ht->lines[i + shift];
-      ht->lines[i + shift].busy = false;
-      ++shift;
-    }
-    else
-    { ++i; (shift > 1U) ? --shift : shift;  }
-  }
-  //-----------------------------------------
 }
 //-----------------------------------------
 #ifdef _DEBUG

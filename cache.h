@@ -3,7 +3,6 @@
 #ifndef _CACHE_H_
 #define _CACHE_H_
 /*
- *  Создать proxy-сервер.
  *  ! LINUX АРХИТЕКТУРА !
  *
  *  v   Сборка через make.
@@ -19,6 +18,7 @@
 //-----------------------------------------
 #define CHWMSG_MAXLEN 5
 typedef enum { CHWMSG_NONE = 0, CHWMSG_TERM, CHWMSG_TASK } chwmsg_enum;
+typedef uint8_t wc_t;
 typedef int fd_t;
 typedef struct child_worker chw_t;
 struct child_worker
@@ -36,7 +36,6 @@ int  child_worker_recv (chw_t *chw, chwmsg_enum *msg, fd_t *fd);
 #define  SRV_MAX_WORKERS   16U
 #define  SRV_BUF_LOWMARK  128U
 
-typedef uint8_t wc_t;
 typedef struct server_config  srv_conf;
 struct  server_config
 {

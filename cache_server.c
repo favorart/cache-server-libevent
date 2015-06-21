@@ -55,7 +55,7 @@ void  cache_connect_cb (evutil_socket_t fd, short ev, void *arg)
   child_worker_recv (server_conf.myself, &msg, &SlaveSocket);
 
   if ( msg == CHWMSG_TERM )
-  { event_loopexit (0); }
+  { event_base_loopexit (ClientParams->base, NULL); }
   else
   {
     //----------------------------------------------------------------------
@@ -243,39 +243,73 @@ HNDL_FREE:;
   return;
 }
 //-----------------------------------------
+#define TESTS 25
 int main ()
 {
   hashtable ht = { 0 };
   hashtable_init (&ht, 20, 0);
 
-  struct evbuffer *buf = evbuffer_new ();
+  // struct evbuffer *buf = evbuffer_new ();
+
+  int32_t inkeys = 0;
+  int32_t  nkeys[TESTS] = { 0 };
+  int32_t  ykeys[TESTS] = { 0 };
+  int32_t iykeys = 0;
+
+  ht_rec hd = { 0 };
 
   srand ((unsigned int) clock ());
-  for ( int i = 0; i < 15; ++i )
+  for ( int i = 0; i < 25; ++i )
   {
     int32_t ttl = rand () % 5 + 2,
             key = rand () % 20,
             val = 1;
 
-    evbuffer_add_printf (buf, "set %d %d %d\n", ttl, key, val);
-  }
-  cache_handling  (&ht, buf, NULL);
+    if ( ttl >= 4 )
+    { ykeys[iykeys++] = key; }
+    else
+    { nkeys[inkeys++] = key; }
+
+    hd.val = val;
+    hd.key = key;
+    hd.ttl = ttl_converted (ttl);
+    if ( hashtable_set (&ht, &hd) )
+    { printf ("error insert: %d\n", key); }
+    else printf ("key=%d  ", key);
+
+    // evbuffer_add_printf (buf, "set %d %d %d\n", ttl, key, val);
+  } // cache_handling  (&ht, buf, NULL);
 
   hashtable_print_debug (&ht, stdout);
 
   sleep (4);
 
-  for ( int i = 0; i < 8; ++i )
+  for ( int i = 0; i < iykeys; ++i )
   {
-    int32_t key = rand () % 5 + 2;
-    evbuffer_add_printf (buf, "get %d\n", key);
+    // int32_t key = rand () % 5 + 2;
+    // evbuffer_add_printf (buf, "get %d\n", keys[i]);   
+
+    hd.key = ykeys[i];
+    if ( hashtable_get (&ht, &hd) )
+    { printf ("error hash must yes: %d\n", ykeys[i]); } 
+    
   }
-  cache_handling  (&ht, buf, NULL);
+  for ( int i = 0; i < inkeys; ++i )
+  {
+    // int32_t key = rand () % 5 + 2;
+    // evbuffer_add_printf (buf, "get %d\n", keys[i]);
+
+    hd.key = nkeys[i];
+    if ( !hashtable_get (&ht, &hd) )
+    { printf ("error hash: key=%d  ttl=%d\n", nkeys[i], time (NULL) - hd.ttl); }
+
+  }
+  // cache_handling  (&ht, buf, NULL);
 
   hashtable_print_debug (&ht, stdout);
 
   hashtable_free (&ht);
-  evbuffer_free  (buf);
+  // evbuffer_free  (buf);
 
   return 0;
 }
