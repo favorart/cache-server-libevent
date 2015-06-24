@@ -1,7 +1,7 @@
 ﻿#include "stdafx.h"
 #include "cache_hash.h"
 
-#ifdef _MYSEM_MYSHM_H_
+#ifdef _LOCK
 //-----------------------------------------
 // #if defined(__GNU_LIBRARY__) && !defined(_SEM_SEMUN_UNDEFINED)
 // // definition in <sys/sem.h>
@@ -16,7 +16,7 @@
 // };
 // #endif
 
-#define MY_PERM  (S_IRUSR|S_IWUSR) //(|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
+#define MY_PERM  (S_IRUSR|S_IWUSR) // (|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
 //-----------------------------------------
 #define MYSEM_NMBR_MAX  257U
 
@@ -79,7 +79,7 @@ void     mysem_remove (mysem_t     sid)
 }
 
 mysem_val_t  mysem_getval (mysem_t sid, mysem_inx_t inx)
-{ return semctl (sid, member, GETVAL, 0); }
+{ return semctl (sid, inx, GETVAL, 0); }
 void         mysem_chperm (mysem_t sid, char *perm)
 {
   struct semid_ds mysemds;
@@ -116,4 +116,4 @@ char*    myshm_append (myshm_t mid)
   return (char*) shm;
 }
 //-----------------------------------------
-#endif // _MYSEM_MYSHM_H_
+#endif // _LOCK

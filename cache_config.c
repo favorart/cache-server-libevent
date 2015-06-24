@@ -2,7 +2,6 @@
 #include "cache_error.h"
 #include "cache.h"
 
-
 //-----------------------------------------
 void  signal_handler (int sig)
 {
@@ -36,13 +35,13 @@ const char*  strmyerror ()
   const char* strerr;
   switch ( my_errno )
   {
-    default:            strerr = NULL;                         break;
-    case SRV_ERR_PARAM: strerr = "Invalid function argument."; break;
-    case SRV_ERR_INPUT: strerr = "Input incorrect user data."; break;
-    case SRV_ERR_LIBEV: strerr = "Incorrect libevent entity."; break;
-    case SRV_ERR_RCMMN: strerr = "Incorrect request command."; break;
-    case SRV_ERR_RFREE: strerr = "Dispatched a free request."; break;
-    case SRV_ERR_FDTRS: strerr = "Failure in transmiting fd."; break;
+    default:            strerr = NULL;                              break;
+    case SRV_ERR_PARAM: strerr = " : Invalid function argument.\n"; break;
+    case SRV_ERR_INPUT: strerr = " : Input incorrect user data.\n"; break;
+    case SRV_ERR_LIBEV: strerr = " : Incorrect libevent entity.\n"; break;
+    case SRV_ERR_RCMMN: strerr = " : Incorrect request command.\n"; break;
+    case SRV_ERR_RFREE: strerr = " : Dispatched a free request.\n"; break;
+    case SRV_ERR_FDTRS: strerr = " : Failure in transmiting fd.\n"; break;
   }
   my_errno = SRV_ERR_NONE;
   return strerr;
