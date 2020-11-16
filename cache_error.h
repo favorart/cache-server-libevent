@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 
 #ifndef _CACHE_ERROR_H_
 #define _CACHE_ERROR_H_
